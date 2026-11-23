@@ -6,6 +6,7 @@ Everything you need to publish the V2 holder on MakerWorld so others can print i
 |---|---|
 | `files/` | `polo-aw-tumbler-holder-v2.stl`, `polo-aw-tumbler-holder-v2-fit-test.stl`, and `polo_aw_nespresso_cupholder.scad` (the parametric source) |
 | `images/` | `1-cover.png` (use as the cover) and four gallery images, 1408 × 1056 px |
+| `makerworld-kit.zip` | All of the above in one download |
 
 ## Part A: publish the model page (about 10 minutes)
 

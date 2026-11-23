@@ -16,4 +16,5 @@ openscad -o stl/fit_test.stl -D 'part="fit_test"' -D 'plug_shape="round"' "$@" "
 cp stl/cupholder_polo_aw_nespresso_v2_octagon.stl makerworld/files/polo-aw-tumbler-holder-v2.stl
 cp stl/fit_test_v2_octagon.stl makerworld/files/polo-aw-tumbler-holder-v2-fit-test.stl
 cp "$SRC" makerworld/files/
+if command -v zip >/dev/null; then (cd makerworld && rm -f makerworld-kit.zip && zip -qr makerworld-kit.zip README.md files images); fi
 echo "Done: V2 (octagon) and V1 (round) STLs in stl/, MakerWorld kit updated"
