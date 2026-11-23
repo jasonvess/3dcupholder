@@ -23,6 +23,8 @@ Section legend: grey is the car's cup holder (schematic), orange is the adapter,
 | `polo_aw_nespresso_cupholder.scad` | Parametric OpenSCAD source. All sizes can be changed in the Customizer. |
 | `stl/cupholder_polo_aw_nespresso_v2_octagon.stl` | **V2** adapter with the octagonal plug, at the default sizes |
 | `stl/fit_test_v2_octagon.stl` | **V2** quick gauges (about 40 min, about 25 g) to check the fit before the full print |
+| `3mf/polo-aw-tumbler-holder-v2.3mf` | **V2** adapter as a 3MF file (opens in Bambu Studio, OrcaSlicer, PrusaSlicer and Cura) |
+| `3mf/polo-aw-tumbler-holder-v2-fit-test.3mf` | **V2** fit test as a 3MF file |
 | `stl/cupholder_polo_aw_nespresso.stl` | V1 adapter with a round plug |
 | `stl/fit_test.stl` | V1 gauges |
 | `build.sh` | Regenerates all the STLs from the `.scad` file |
