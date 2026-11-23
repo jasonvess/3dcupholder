@@ -1,11 +1,15 @@
 // =====================================================================
-//  Cup holder adapter
+//  Cup holder adapter  -  V2 (octagonal plug)
 //  Car:     VW Polo 6th gen (AW / 2G), pre-facelift 2017-2021
 //  Cup:     Nespresso Travel Tumbler "Samra Origins" (540 ml)
 //
 //  The tumbler body is ~92.7 mm wide, too big for the Polo's centre
 //  console cup holders. This adapter plugs into one of them and gives
 //  the tumbler a wide, deep cup with spring tabs that stop it rattling.
+//
+//  V2: the Polo's cup holders are octagonal, so the plug is octagonal
+//  too. It matches the holder and can't spin. Set plug_shape = "round"
+//  for the V1 round plug.
 //
 //  Print upright (plug on the bed). No supports needed.
 //  Material: PETG or ASA. Do NOT use PLA, it softens in a hot car.
@@ -19,14 +23,20 @@
 part = "holder"; // [holder, fit_test]
 
 /* [Car cup holder (measure yours!)] */
-// Inside diameter of the Polo's cup holder at the top rim (mm)
+// Shape of the plug. octagon = V2 (matches the Polo), round = V1.
+plug_shape = "octagon"; // [octagon, round]
+// Width of the cup holder at the top rim (mm). Octagon: measure across two opposite FLAT sides.
 car_hole_top_d = 74;
-// Inside diameter of the cup holder at its floor (mm)
+// Width of the cup holder at its floor (mm). Octagon: across flats.
 car_hole_bottom_d = 71;
 // Depth of the cup holder from rim to floor (mm)
 car_hole_depth = 50;
 // Total diametral clearance on the plug (mm). Smaller = tighter fit.
 plug_clearance = 0.5;
+// Rounding on the octagon's corners (mm). Raise it if the holder has rounder corners.
+plug_corner_r = 3;
+// Turn the octagon relative to the cup (degrees). 0 = flat sides face 0/90/180/270.
+plug_rotation = 0;
 
 /* [Tumbler (Nespresso Travel Tumbler)] */
 // Body diameter just below the lid (mm). Nespresso spec: 92.7
@@ -80,8 +90,11 @@ eps = 0.01;
 //  Derived dimensions
 // ---------------------------------------------------------------------
 plug_h      = car_hole_depth - 1;               // stop 1 mm short of the floor
-plug_r_top  = (car_hole_top_d    - plug_clearance) / 2;
-plug_r_bot  = (car_hole_bottom_d - plug_clearance) / 2;
+plug_w_top  = car_hole_top_d    - plug_clearance;   // across flats (or diameter)
+plug_w_bot  = car_hole_bottom_d - plug_clearance;
+plug_r_top  = plug_w_top / 2;                       // inscribed radius
+plug_r_bot  = plug_w_bot / 2;
+function plug_w_at(z) = plug_w_bot + (plug_w_top - plug_w_bot) * z / plug_h;
 
 // tumbler diameter at height h above its base (linear taper model)
 function tumbler_d_at(h) =
@@ -110,34 +123,53 @@ tab_len    = min(tab_length, tab_tip_z - (floor_z + 3));
 tab_root_z = tab_tip_z - tab_len;
 bump_flat  = 4;
 
-// hollow plug: cylinder cavity with a 45-degree conical roof (no supports)
+// hollow plug: cavity following the plug shape, with a 45-degree roof (no supports)
 cav_r     = plug_r_top - plug_wall;
 cav_apex  = floor_z - 3;                     // keep >= 3 mm of floor at the centre
 cav_cyl_h = min(plug_h - plug_wall, cav_apex - cav_r);
 
 echo(str("Overall height: ", top_z, " mm  (", top_z - plug_h, " mm above the console)"));
 echo(str("Tumbler base sits ", floor_z - plug_h, " mm above the console, cup holds ", cup_depth, " of ", tumbler_body_h, " mm"));
-echo(str("Plug: ", 2*plug_r_bot, " -> ", 2*plug_r_top, " mm, ", plug_h, " mm long"));
+echo(str("Plug: ", plug_shape, ", ", plug_w_bot, " -> ", plug_w_top,
+          plug_shape == "octagon" ? " mm across flats, " : " mm, ", plug_h, " mm long"));
 echo(str("Cup bore: ", 2*bore_r_bot, " -> ", 2*bore_r_top, " mm, outer ", 2*cup_r_out_top, " mm"));
 
 // ---------------------------------------------------------------------
 //  Parts
 // ---------------------------------------------------------------------
-module plug_solid(r_bot = plug_r_bot, r_top = plug_r_top, h = plug_h, c = chamfer) {
+// 2D cross-section of the plug. w = width across flats (octagon) or diameter (round).
+// inset shrinks it evenly, for hollowing.
+module plug_profile(w, inset = 0) {
+    if (plug_shape == "octagon") {
+        cr   = max(plug_corner_r - inset, 0.01);
+        r_in = w / 2 - inset;                       // inscribed radius
+        rotate(22.5 + plug_rotation)                // flats face 0/90/180/270
+            offset(r = cr) circle(r = (r_in - cr) / cos(22.5), $fn = 8);
+    } else {
+        circle(r = w / 2 - inset);
+    }
+}
+
+// a thin slice of the plug profile at height z, for hulling
+module plug_slice(w, z, inset = 0) {
+    translate([0, 0, z]) linear_extrude(height = eps) plug_profile(w, inset);
+}
+
+module plug_solid(c = chamfer) {
     hull() {
-        cylinder(r = r_bot - c, h = eps);
-        translate([0, 0, c]) cylinder(r = r_bot, h = eps);
-        translate([0, 0, h - eps]) cylinder(r = r_top, h = eps);
+        plug_slice(plug_w_bot - 2 * c, 0);
+        plug_slice(plug_w_at(c), c);
+        plug_slice(plug_w_top, plug_h - eps);
     }
 }
 
 module outer_body() {
     plug_solid();
     if (cup_lift > 0)
-        translate([0, 0, plug_h - eps]) cylinder(r = plug_r_top, h = cup_lift + 2 * eps);
+        hull() { plug_slice(plug_w_top, plug_h - eps); plug_slice(plug_w_top, neck_z); }
     // plug -> cup transition (45 degrees, prints without supports)
     hull() {
-        translate([0, 0, neck_z - eps]) cylinder(r = plug_r_top, h = eps);
+        plug_slice(plug_w_top, neck_z - eps);
         translate(off + [0, 0, cup_z0]) cylinder(r = cup_r_out_bot, h = eps);
     }
     translate(off + [0, 0, cup_z0])
@@ -195,11 +227,17 @@ module tab_positions() {
 }
 
 module plug_cavity() {
-    // the plug tapers, so follow the taper to keep the wall even
-    r_b = plug_r_bot - plug_wall;
-    translate([0, 0, -1]) cylinder(r1 = r_b, r2 = r_b + (cav_r - r_b) * (cav_cyl_h + 1) / plug_h, h = cav_cyl_h + 1 + eps);
-    r_c = r_b + (cav_r - r_b) * cav_cyl_h / plug_h;
-    translate([0, 0, cav_cyl_h]) cylinder(r1 = r_c, r2 = 0.5, h = r_c - 0.5);  // 45-degree roof
+    // follows the plug's shape and taper, so the wall stays even
+    w_c = plug_w_at(cav_cyl_h);
+    hull() {
+        plug_slice(plug_w_at(-1), -1, plug_wall);
+        plug_slice(w_c, cav_cyl_h, plug_wall);
+    }
+    // 45-degree roof: a cone (round) or pyramid (octagon) up to a point
+    hull() {
+        plug_slice(w_c, cav_cyl_h, plug_wall);
+        translate([0, 0, cav_cyl_h + w_c / 2 - plug_wall - 0.5]) cylinder(r = 0.5, h = eps, $fn = 16);
+    }
 }
 
 module holder() {
@@ -218,7 +256,7 @@ module holder() {
 
 // ---------------------------------------------------------------------
 //  Fit test: print this first (~40 min, ~25 g)
-//   - inner piece: hollow copy of the plug, printed upside down on a lip.
+//   - inner piece: hollow copy of the plug (same shape), printed upside down on a lip.
 //     Push it into the car's cup holder: it should go in fully, snug, no rattle.
 //   - outer ring: same diameter as the bottom of the cup. Slide it over the
 //     tumbler's base: it should slide on with ~1 mm of play all round.
@@ -226,12 +264,13 @@ module holder() {
 module fit_test() {
     g = 1.2;   // gauge wall (3 lines with a 0.4 mm nozzle)
     // plug gauge (upside down: wide end on the bed)
+    function gw(z) = plug_w_top + (plug_w_bot - plug_w_top) * (z - 2) / plug_h;
     difference() {
         union() {
-            cylinder(r = plug_r_top + 4, h = 2);
-            translate([0, 0, 2]) cylinder(r1 = plug_r_top, r2 = plug_r_bot, h = plug_h);
+            linear_extrude(height = 2) plug_profile(plug_w_top + 8);
+            hull() { plug_slice(plug_w_top, 2); plug_slice(plug_w_bot, 2 + plug_h - eps); }
         }
-        translate([0, 0, -1]) cylinder(r1 = plug_r_top - g, r2 = plug_r_bot - g, h = plug_h + 4);
+        hull() { plug_slice(gw(-1), -1, g); plug_slice(gw(plug_h + 3), plug_h + 3, g); }
     }
     // cup gauge ring (bottom of cup), nested around the plug gauge
     difference() {
