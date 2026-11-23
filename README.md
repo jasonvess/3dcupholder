@@ -26,6 +26,7 @@ Section legend: grey is the car's cup holder (schematic), orange is the adapter,
 | `stl/cupholder_polo_aw_nespresso.stl` | V1 adapter with a round plug |
 | `stl/fit_test.stl` | V1 gauges |
 | `build.sh` | Regenerates all the STLs from the `.scad` file |
+| `makerworld/` | Upload kit for MakerWorld: files, cover images, listing text and step-by-step instructions |
 
 ## Dimensions used
 
